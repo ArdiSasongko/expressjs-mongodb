@@ -17,7 +17,9 @@ app.use(bodyParser.json())
 app.get("/", (req,res) => {
     res.status(200).json("Response Success")
 })
+
 app.use("/admin", require("./module/route/adminRoute"))
+app.use("/user", require("./module/route/userRoute"))
 app.use(errorHandling)
 
 app.listen(PORT, () => {

@@ -23,7 +23,7 @@ const userSchema = new mongoose.Schema({
         immutable : true
     },
     createdAt : {
-        type : Data,
+        type : Date,
         deafult : Date.now
     }
 })

@@ -1,32 +1,31 @@
-const asyncHandler = require("express-async-handler")
+const asyncHandler = require("express-async-handler");
 const Response = require("../model/response")
-const jwt = require("jsonwebtoken")
+const jwt = require("jsonwebtoken");
 
-const validateToken = asyncHandler (async (req,res,next) => {
-    let Token
-    let authHeader = req.headers.authorization
+const validateToken = asyncHandler(async (req, res, next) => {
+  let token;
+  let authHeader = req.headers.authorization;
 
-    if(Token && authHeader.startsWith("Bearer")){
-        Token = authHeader.split(" ")[1]
+  if (authHeader && authHeader.startsWith("Bearer")) {
+    token = authHeader.split(" ")[1];
 
-        if(!Token){
-            const response = new Response.Error(true, 404, "Need Token")
-            return res.status(404).json(response)
-        }
-
-        jwt.verify(Token, process.env.KEY, (err,decode) => {
-            if(err){
-                const response = new Response.Error(true, 400, err.message)
-                return res.status(400).json(response)
-            }
-
-            req.user = decode.user
-            next()
-        })
-    }else {
-        const response = new Response.Error(true, 401, "Invalid Token")
-        return res.status(401).json(response)
+    if (!token) {
+        const response = new Response.Error(true, 404, "Token not found")
+        return res.status(404).json(response)
     }
-})
 
-module.exports = validateToken
+    jwt.verify(token, process.env.KEY, (err, decode) => {
+      if (err) {
+        const response = new Response.Error(true, 401, "User Unauthorized")
+        return res.status(401).json(response)
+      }
+      req.user = decode.user;
+      next();
+    });
+  } else {
+    const response = new Response.Error(true, 401, "Header Authorization not valid")
+    return res.status(401).json(response)
+  }
+});
+
+module.exports = validateToken;

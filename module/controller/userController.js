@@ -5,6 +5,7 @@ const userValidator = require("../middleware/userValidator")
 const loginValidator = require("../middleware/loginValidator")
 const jwtToken = require("jsonwebtoken")
 const bcrypt = require("bcrypt")
+const userUpdateValidator = require("../middleware/userUpdateValidator")
 
 const registerUser = asyncHandler (async (req,res) => {
     try {
@@ -66,4 +67,71 @@ const loginUser = asyncHandler (async (req,res) => {
     }
 })
 
-module.exports = { registerUser, loginUser }
+const editData = asyncHandler(async (req, res) => {
+    try {
+      const realUser = req.user.id;
+      const idUser = await User.findOne({ _id: req.params.id });
+      const Admin = req.user.type;
+  
+      if (!idUser) {
+        const response = new Response.Error(true, 404, "User Not Found");
+        return res.status(404).json(response);
+      }
+  
+      if (realUser.toString() === idUser._id.toString() || Admin === "Admin") {
+
+        const request = await userUpdateValidator.validateAsync(req.body);
+        const existingUsername = await User.findOne({ username: request.username });
+  
+        if (existingUsername && existingUsername._id.toString() !== idUser._id.toString()) {
+          const response = new Response.Error(true, 400, "Username Already Used");
+          return res.status(400).json(response);
+        }
+  
+        if (request.password && request.password.length !== 0) {
+          const hashPassword = await bcrypt.hash(request.password, 12);
+          request.password = hashPassword;
+        }
+  
+        const result = await User.findByIdAndUpdate(
+          req.params.id,
+          request,
+          { new: true }
+        );
+  
+        const response = new Response.Success(false, 200, "Update User Success", result);
+        return res.status(200).json(response);
+      } else {
+        const response = new Response.Error(true, 401, "Unauthorized");
+        return res.status(401).json(response);
+      }
+    } catch (error) {
+      const response = new Response.Error(true, 400, error.message);
+      return res.status(400).json(response);
+    }
+  });  
+
+const deleteUser = asyncHandler (async (req,res) => {
+    try {
+        const realUser = req.user.id
+        const idUser = await User.findOne({ _id : req.params.id})
+        const Admin = req.user.type
+
+
+        if(!idUser) {
+            const response = new Response.Error(true, 404, "User Not Found")
+            return res.status(404).json(response)
+        }
+
+        if(realUser === idUser || Admin === "Admin") {
+            const result = await User.findOneAndDelete( idUser._id )
+            const response = new Response.Success(false, 201, "Delete User Success", result)
+            return res.status(201).json(response)
+        }
+    } catch (error) {
+        const response = new Response.Error(true, 400, error.message)
+        return res.status(400).json(response)
+    }
+})
+
+module.exports = { registerUser, loginUser, editData, deleteUser }
